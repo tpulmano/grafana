@@ -311,6 +311,7 @@ export class AzureMonitorQueryCtrl extends QueryCtrl {
     this.target.azureMonitor.timeGrain = '';
     this.target.azureMonitor.dimensions = [];
     this.target.azureMonitor.dimension = '';
+    this.refresh();
   }
 
   onMetricDefinitionChange() {
@@ -330,6 +331,7 @@ export class AzureMonitorQueryCtrl extends QueryCtrl {
     this.target.azureMonitor.timeGrain = '';
     this.target.azureMonitor.dimensions = [];
     this.target.azureMonitor.dimension = '';
+    this.refresh();
   }
 
   onMetricNameChange() {
