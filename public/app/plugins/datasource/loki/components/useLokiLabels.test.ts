@@ -2,7 +2,7 @@ import { renderHook, act } from 'react-hooks-testing-library';
 import LanguageProvider from 'app/plugins/datasource/loki/language_provider';
 import { useLokiLabels } from './useLokiLabels';
 import { DataSourceStatus } from '@grafana/ui/src/types/datasource';
-import { TimeRange } from '@grafana/ui';
+import { TimeRange, TimeZone } from '@grafana/ui';
 
 describe('useLokiLabels hook', () => {
   it('should refresh labels', async () => {
@@ -19,6 +19,16 @@ describe('useLokiLabels hook', () => {
       to: {
         valueOf: () => 1560163909000,
       },
+
+      raw: {
+        from: '1560153109000',
+        to: '1560163909000',
+      },
+    };
+
+    const timeZoneMock: TimeZone = {
+      raw: 'browser',
+      isUtc: false,
     };
 
     languageProvider.refreshLogLabels = () => {
@@ -32,6 +42,7 @@ describe('useLokiLabels hook', () => {
         true,
         [],
         rangeMock as TimeRange,
+        timeZoneMock,
         DataSourceStatus.Connected,
         DataSourceStatus.Connected
       )
@@ -55,6 +66,16 @@ describe('useLokiLabels hook', () => {
       to: {
         valueOf: () => 1560163909000,
       },
+
+      raw: {
+        from: '1560153109000',
+        to: '1560163909000',
+      },
+    };
+
+    const timeZoneMock: TimeZone = {
+      raw: 'browser',
+      isUtc: false,
     };
 
     const languageProvider = new LanguageProvider(datasource);
@@ -66,13 +87,14 @@ describe('useLokiLabels hook', () => {
         true,
         [],
         rangeMock as TimeRange,
+        timeZoneMock,
         DataSourceStatus.Connected,
         DataSourceStatus.Disconnected
       )
     );
 
     expect(languageProvider.refreshLogLabels).toBeCalledTimes(1);
-    expect(languageProvider.refreshLogLabels).toBeCalledWith(rangeMock, true);
+    expect(languageProvider.refreshLogLabels).toBeCalledWith(timeZoneMock, rangeMock, true);
   });
 
   it('should not force refresh labels after a connect', () => {
@@ -88,6 +110,16 @@ describe('useLokiLabels hook', () => {
       to: {
         valueOf: () => 1560163909000,
       },
+
+      raw: {
+        from: '1560153109000',
+        to: '1560163909000',
+      },
+    };
+
+    const timeZoneMock: TimeZone = {
+      raw: 'browser',
+      isUtc: false,
     };
 
     const languageProvider = new LanguageProvider(datasource);
@@ -99,6 +131,7 @@ describe('useLokiLabels hook', () => {
         true,
         [],
         rangeMock as TimeRange,
+        timeZoneMock,
         DataSourceStatus.Disconnected,
         DataSourceStatus.Connected
       )

@@ -10,7 +10,8 @@ const LokiQueryField: FunctionComponent<LokiQueryFieldFormProps> = ({
   const { isSyntaxReady, setActiveOption, refreshLabels, ...syntaxProps } = useLokiSyntax(
     datasource.languageProvider,
     datasourceStatus,
-    otherProps.range
+    otherProps.range,
+    otherProps.timeZone
   );
 
   return (

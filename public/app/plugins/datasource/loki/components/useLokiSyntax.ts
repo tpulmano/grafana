@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 // @ts-ignore
 import Prism from 'prismjs';
 import { DataSourceStatus } from '@grafana/ui/src/types/datasource';
-import { TimeRange } from '@grafana/ui';
+import { TimeRange, TimeZone } from '@grafana/ui';
 import LokiLanguageProvider from 'app/plugins/datasource/loki/language_provider';
 import { useLokiLabels } from 'app/plugins/datasource/loki/components/useLokiLabels';
 import { CascaderOption } from 'app/plugins/datasource/loki/components/LokiQueryFieldForm';
@@ -18,7 +18,8 @@ const PRISM_SYNTAX = 'promql';
 export const useLokiSyntax = (
   languageProvider: LokiLanguageProvider,
   datasourceStatus: DataSourceStatus,
-  range: TimeRange
+  range: TimeRange,
+  timeZone: TimeZone
 ) => {
   const mounted = useRefMounted();
   // State
@@ -37,12 +38,14 @@ export const useLokiSyntax = (
     languageProviderInitialized,
     activeOption,
     range,
+    timeZone,
     datasourceStatus
   );
 
   // Async
   const initializeLanguageProvider = async () => {
     languageProvider.initialRange = range;
+    languageProvider.timeZone = timeZone;
     await languageProvider.start();
     Prism.languages[PRISM_SYNTAX] = languageProvider.getSyntax();
     if (mounted.current) {

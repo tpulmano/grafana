@@ -21,11 +21,13 @@ import {
   DataSourceStatus,
   PanelData,
   DataQueryError,
+  TimeZone,
 } from '@grafana/ui';
 import { HistoryItem, ExploreItemState, ExploreId, ExploreMode } from 'app/types/explore';
 import { Emitter } from 'app/core/utils/emitter';
 import { highlightLogsExpressionAction, removeQueryRowAction } from './state/actionTypes';
 import QueryStatus from './QueryStatus';
+import { getTimeZone } from '../profile/state/selectors';
 
 interface PropsFromParent {
   exploreId: ExploreId;
@@ -45,6 +47,7 @@ interface QueryRowProps extends PropsFromParent {
   query: DataQuery;
   modifyQueries: typeof modifyQueries;
   range: TimeRange;
+  timeZone: TimeZone;
   removeQueryRowAction: typeof removeQueryRowAction;
   runQueries: typeof runQueries;
   queryResponse: PanelData;
@@ -111,6 +114,7 @@ export class QueryRow extends PureComponent<QueryRowProps> {
       query,
       exploreEvents,
       range,
+      timeZone,
       datasourceStatus,
       queryResponse,
       latency,
@@ -145,6 +149,7 @@ export class QueryRow extends PureComponent<QueryRowProps> {
               panelData={null}
               queryResponse={queryResponse}
               range={range}
+              timeZone={timeZone}
             />
           ) : (
             <QueryEditor
@@ -195,6 +200,7 @@ function mapStateToProps(state: StoreState, { exploreId, index }: QueryRowProps)
     queryErrors,
     mode,
   } = item;
+  const timeZone = getTimeZone(state.user);
   const query = queries[index];
   const datasourceStatus = datasourceError ? DataSourceStatus.Disconnected : DataSourceStatus.Connected;
   const error = queryErrors.filter(queryError => queryError.refId === query.refId)[0];
@@ -210,6 +216,7 @@ function mapStateToProps(state: StoreState, { exploreId, index }: QueryRowProps)
     history,
     query,
     range,
+    timeZone,
     datasourceStatus,
     queryResponse,
     latency,

@@ -3,6 +3,7 @@ import _ from 'lodash';
 
 // Services & Utils
 import { parseSelector, labelRegexp, selectorRegexp } from 'app/plugins/datasource/prometheus/language_utils';
+import { getTimeRange } from 'app/core/utils/explore';
 import syntax from './syntax';
 
 // Types
@@ -17,7 +18,7 @@ import {
 import { LokiQuery } from './types';
 import { dateTime } from '@grafana/ui/src/utils/moment_wrapper';
 import { PromQuery } from '../prometheus/types';
-import { TimeRange } from '@grafana/ui';
+import { TimeRange, TimeZone } from '@grafana/ui';
 
 const DEFAULT_KEYS = ['job', 'namespace'];
 const EMPTY_SELECTOR = '{}';
@@ -53,6 +54,7 @@ export default class LokiLanguageProvider extends LanguageProvider {
   logLabelFetchTs?: number;
   started: boolean;
   initialRange: TimeRange;
+  timeZone: TimeZone;
 
   constructor(datasource: any, initialValues?: any) {
     super();
@@ -76,7 +78,7 @@ export default class LokiLanguageProvider extends LanguageProvider {
 
   start = () => {
     if (!this.startTask) {
-      this.startTask = this.fetchLogLabels(this.initialRange);
+      this.startTask = this.fetchLogLabels(this.timeZone, this.initialRange);
     }
     return this.startTask;
   };
@@ -123,7 +125,10 @@ export default class LokiLanguageProvider extends LanguageProvider {
     return { suggestions };
   }
 
-  getLabelCompletionItems({ text, wrapperClasses, labelKey, value }: TypeaheadInput, { range }: any): TypeaheadOutput {
+  getLabelCompletionItems(
+    { text, wrapperClasses, labelKey, value }: TypeaheadInput,
+    { range, timeZone }: any
+  ): TypeaheadOutput {
     let context: string;
     let refresher: Promise<any> = null;
     const suggestions: CompletionItemGroup[] = [];
@@ -149,7 +154,7 @@ export default class LokiLanguageProvider extends LanguageProvider {
             items: labelValues.map(wrapLabel),
           });
         } else {
-          refresher = this.fetchLabelValues(labelKey, range);
+          refresher = this.fetchLabelValues(labelKey, timeZone, range);
         }
       }
     } else {
@@ -230,11 +235,12 @@ export default class LokiLanguageProvider extends LanguageProvider {
     return '';
   }
 
-  async fetchLogLabels(range?: TimeRange): Promise<any> {
+  async fetchLogLabels(timeZone: TimeZone, range?: TimeRange): Promise<any> {
     const url = '/api/prom/label';
     try {
       this.logLabelFetchTs = Date.now();
-      const params = range ? this.rangeToParams(range) : '';
+      const updatedRange = getTimeRange(timeZone, range.raw);
+      const params = updatedRange ? this.rangeToParams(updatedRange) : '';
       const res = await this.request(`${url}${params}`);
       const body = await (res.data || res.json());
       const labelKeys = body.data.slice().sort();
@@ -248,7 +254,7 @@ export default class LokiLanguageProvider extends LanguageProvider {
       return Promise.all(
         labelKeys
           .filter((key: string) => DEFAULT_KEYS.indexOf(key) > -1)
-          .map((key: string) => this.fetchLabelValues(key, range))
+          .map((key: string) => this.fetchLabelValues(key, timeZone, range))
       );
     } catch (e) {
       console.error(e);
@@ -256,14 +262,15 @@ export default class LokiLanguageProvider extends LanguageProvider {
     return [];
   }
 
-  async refreshLogLabels(range: TimeRange, forceRefresh?: boolean) {
+  async refreshLogLabels(timeZone: TimeZone, range: TimeRange, forceRefresh?: boolean) {
     if ((this.labelKeys && Date.now() - this.logLabelFetchTs > LABEL_REFRESH_INTERVAL) || forceRefresh) {
-      await this.fetchLogLabels(range);
+      await this.fetchLogLabels(timeZone, range);
     }
   }
 
-  async fetchLabelValues(key: string, range?: TimeRange) {
-    const params = range ? this.rangeToParams(range) : '';
+  async fetchLabelValues(key: string, timeZone: TimeZone, range?: TimeRange) {
+    const updatedRange = getTimeRange(timeZone, range.raw);
+    const params = updatedRange ? this.rangeToParams(updatedRange) : '';
     const url = `/api/prom/label/${key}/values${params}`;
     try {
       const res = await this.request(url);

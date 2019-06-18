@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { DataSourceStatus } from '@grafana/ui/src/types/datasource';
-import { TimeRange } from '@grafana/ui';
+import { TimeRange, TimeZone } from '@grafana/ui';
 
 import LokiLanguageProvider from 'app/plugins/datasource/loki/language_provider';
 import { CascaderOption } from 'app/plugins/datasource/loki/components/LokiQueryFieldForm';
@@ -19,6 +19,7 @@ export const useLokiLabels = (
   languageProviderInitialised: boolean,
   activeOption: CascaderOption[],
   range: TimeRange,
+  timeZone: TimeZone,
   datasourceStatus: DataSourceStatus,
   initialDatasourceStatus?: DataSourceStatus // used for test purposes
 ) => {
@@ -34,14 +35,14 @@ export const useLokiLabels = (
 
   // Async
   const fetchOptionValues = async (option: string) => {
-    await languageProvider.fetchLabelValues(option, range);
+    await languageProvider.fetchLabelValues(option, timeZone, range);
     if (mounted.current) {
       setLogLabelOptions(languageProvider.logLabelOptions);
     }
   };
 
   const tryLabelsRefresh = async () => {
-    await languageProvider.refreshLogLabels(range, shouldForceRefreshLabels);
+    await languageProvider.refreshLogLabels(timeZone, range, shouldForceRefreshLabels);
 
     if (mounted.current) {
       setRefreshLabels(false);

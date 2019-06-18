@@ -16,7 +16,7 @@ import BracesPlugin from 'app/features/explore/slate-plugins/braces';
 // Types
 import { LokiQuery } from '../types';
 import { TypeaheadOutput, HistoryItem } from 'app/types/explore';
-import { DataSourceApi, ExploreQueryFieldProps, DataSourceStatus, TimeRange } from '@grafana/ui';
+import { DataSourceApi, ExploreQueryFieldProps, DataSourceStatus, TimeRange, TimeZone } from '@grafana/ui';
 
 function getChooserText(hasSyntax: boolean, hasLogLabels: boolean, datasourceStatus: DataSourceStatus) {
   if (datasourceStatus === DataSourceStatus.Disconnected) {
@@ -71,6 +71,7 @@ export interface LokiQueryFieldFormProps extends ExploreQueryFieldProps<DataSour
   logLabelOptions: any[];
   syntaxLoaded: any;
   range: TimeRange;
+  timeZone: TimeZone;
   onLoadOptions: (selectedOptions: CascaderOption[]) => void;
   onLabelsRefresh?: () => void;
 }
@@ -124,7 +125,7 @@ export class LokiQueryFieldForm extends React.PureComponent<LokiQueryFieldFormPr
       return { suggestions: [] };
     }
 
-    const { history, range } = this.props;
+    const { history, range, timeZone } = this.props;
     const { prefix, text, value, wrapperNode } = typeahead;
 
     // Get DOM-dependent context
@@ -135,7 +136,7 @@ export class LokiQueryFieldForm extends React.PureComponent<LokiQueryFieldFormPr
 
     const result = datasource.languageProvider.provideCompletionItems(
       { text, value, prefix, wrapperClasses, labelKey },
-      { history, range }
+      { history, range, timeZone }
     );
 
     console.log('handleTypeahead', wrapperClasses, text, prefix, nextChar, labelKey, result.context);

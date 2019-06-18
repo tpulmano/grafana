@@ -2,7 +2,8 @@
 import Plain from 'slate-plain-serializer';
 
 import LanguageProvider, { LABEL_REFRESH_INTERVAL } from './language_provider';
-import { TimeRange } from '@grafana/ui';
+import { TimeRange, TimeZone } from '@grafana/ui';
+import { getTimeRange } from 'app/core/utils/explore';
 import { advanceTo, clear, advanceBy } from 'jest-date-mock';
 import { beforeEach } from 'test/lib/common';
 import { DataQueryResponseData } from '@grafana/ui';
@@ -20,6 +21,11 @@ describe('Language completion provider', () => {
 
     to: {
       valueOf: () => 1560163909000,
+    },
+
+    raw: {
+      from: '1560153109000',
+      to: '1560163909000',
     },
   };
 
@@ -121,6 +127,16 @@ describe('Request URL', () => {
       to: {
         valueOf: () => 1560163909000,
       },
+
+      raw: {
+        from: '1560153109000',
+        to: '1560163909000',
+      },
+    };
+
+    const timeZoneMock: TimeZone = {
+      raw: 'browser',
+      isUtc: false,
     };
 
     const datasourceWithLabels = {
@@ -136,9 +152,10 @@ describe('Request URL', () => {
     const datasourceSpy = sinon.spy(datasourceWithLabels, 'metadataRequest');
 
     const instance = new LanguageProvider(datasourceWithLabels, { initialRange: rangeMock as TimeRange });
-    await instance.refreshLogLabels(rangeMock as TimeRange, true);
-    const expectedUrl = `/api/prom/label?start=${rangeMock.from.valueOf() * NS_IN_MS}&end=${rangeMock.to.valueOf() *
-      NS_IN_MS}`;
+    await instance.refreshLogLabels(timeZoneMock, rangeMock as TimeRange, true);
+    const updatedRange = getTimeRange(timeZoneMock, rangeMock.raw);
+    const expectedUrl = `/api/prom/label?start=${updatedRange.from.valueOf() *
+      NS_IN_MS}&end=${updatedRange.to.valueOf() * NS_IN_MS}`;
     expect(datasourceSpy.firstCall.calledWith(expectedUrl)).toBe(true);
   });
 });
@@ -156,17 +173,30 @@ describe('Query imports', () => {
     to: {
       valueOf: () => 1560163909000,
     },
+
+    raw: {
+      from: '1560153109000',
+      to: '1560163909000',
+    },
+  };
+
+  const timeZoneMock: TimeZone = {
+    raw: 'browser',
+    isUtc: false,
   };
 
   it('returns empty queries for unknown origin datasource', async () => {
-    const instance = new LanguageProvider(datasource, { initialRange: rangeMock as TimeRange });
+    const instance = new LanguageProvider(datasource, { initialRange: rangeMock as TimeRange, timeZone: timeZoneMock });
     const result = await instance.importQueries([{ refId: 'bar', expr: 'foo' }], 'unknown');
     expect(result).toEqual([{ refId: 'bar', expr: '' }]);
   });
 
   describe('prometheus query imports', () => {
     it('returns empty query from metric-only query', async () => {
-      const instance = new LanguageProvider(datasource, { initialRange: rangeMock as TimeRange });
+      const instance = new LanguageProvider(datasource, {
+        initialRange: rangeMock as TimeRange,
+        timeZone: timeZoneMock,
+      });
       const result = await instance.importPrometheusQuery('foo');
       expect(result).toEqual('');
     });
@@ -174,9 +204,14 @@ describe('Query imports', () => {
     it('returns empty query from selector query if label is not available', async () => {
       const datasourceWithLabels = {
         metadataRequest: url =>
-          url.slice(0, 15) === '/api/prom/label' ? { data: { data: ['other'] } } : { data: { data: [] as DataQueryResponseData[] } },
+          url.slice(0, 15) === '/api/prom/label'
+            ? { data: { data: ['other'] } }
+            : { data: { data: [] as DataQueryResponseData[] } },
       };
-      const instance = new LanguageProvider(datasourceWithLabels, { initialRange: rangeMock as TimeRange });
+      const instance = new LanguageProvider(datasourceWithLabels, {
+        initialRange: rangeMock as TimeRange,
+        timeZone: timeZoneMock,
+      });
       const result = await instance.importPrometheusQuery('{foo="bar"}');
       expect(result).toEqual('{}');
     });
@@ -184,9 +219,14 @@ describe('Query imports', () => {
     it('returns selector query from selector query with common labels', async () => {
       const datasourceWithLabels = {
         metadataRequest: url =>
-          url.slice(0, 15) === '/api/prom/label' ? { data: { data: ['foo'] } } : { data: { data: [] as DataQueryResponseData[] } },
+          url.slice(0, 15) === '/api/prom/label'
+            ? { data: { data: ['foo'] } }
+            : { data: { data: [] as DataQueryResponseData[] } },
       };
-      const instance = new LanguageProvider(datasourceWithLabels, { initialRange: rangeMock as TimeRange });
+      const instance = new LanguageProvider(datasourceWithLabels, {
+        initialRange: rangeMock as TimeRange,
+        timeZone: timeZoneMock,
+      });
       const result = await instance.importPrometheusQuery('metric{foo="bar",baz="42"}');
       expect(result).toEqual('{foo="bar"}');
     });
@@ -198,7 +238,10 @@ describe('Query imports', () => {
             ? { data: { data: [] as DataQueryResponseData[] } }
             : { data: { data: [] as DataQueryResponseData[] } },
       };
-      const instance = new LanguageProvider(datasourceWithLabels, { initialRange: rangeMock as TimeRange });
+      const instance = new LanguageProvider(datasourceWithLabels, {
+        initialRange: rangeMock as TimeRange,
+        timeZone: timeZoneMock,
+      });
       const result = await instance.importPrometheusQuery('metric{foo="bar",baz="42"}');
       expect(result).toEqual('{baz="42",foo="bar"}');
     });
@@ -219,6 +262,16 @@ describe('Labels refresh', () => {
     to: {
       valueOf: () => 1560163909000,
     },
+
+    raw: {
+      from: '1560153109000',
+      to: '1560163909000',
+    },
+  };
+
+  const timeZoneMock: TimeZone = {
+    raw: 'browser',
+    isUtc: false,
   };
 
   beforeEach(() => {
@@ -234,7 +287,7 @@ describe('Labels refresh', () => {
     advanceTo(new Date(2019, 1, 1, 0, 0, 0));
     instance.logLabelFetchTs = Date.now();
     advanceBy(LABEL_REFRESH_INTERVAL / 2);
-    instance.refreshLogLabels(rangeMock as TimeRange);
+    instance.refreshLogLabels(timeZoneMock, rangeMock as TimeRange);
     expect(instance.fetchLogLabels).not.toBeCalled();
   });
 
@@ -242,7 +295,7 @@ describe('Labels refresh', () => {
     advanceTo(new Date(2019, 1, 1, 0, 0, 0));
     instance.logLabelFetchTs = Date.now();
     advanceBy(LABEL_REFRESH_INTERVAL + 1);
-    instance.refreshLogLabels(rangeMock as TimeRange);
+    instance.refreshLogLabels(timeZoneMock, rangeMock as TimeRange);
     expect(instance.fetchLogLabels).toBeCalled();
   });
 });
