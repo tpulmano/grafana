@@ -155,6 +155,16 @@ func TestSimpleReducer(t *testing.T) {
 			So(reducer.Reduce(series).Valid, ShouldEqual, false)
 		})
 
+		Convey("diff with increase", func() {
+			result := testReducer("diff", 11, 30)
+			So(result, ShouldEqual, float64(19))
+		})
+
+		Convey("diff with decrease", func() {
+			result := testReducer("diff", 30, 11)
+			So(result, ShouldEqual, float64(19))
+		})
+
 		Convey("percent_diff one point", func() {
 			result := testReducer("percent_diff", 40)
 			So(result, ShouldEqual, float64(0))
@@ -181,6 +191,91 @@ func TestSimpleReducer(t *testing.T) {
 
 			So(reducer.Reduce(series).Valid, ShouldEqual, false)
 		})
+
+		Convey("percent_diff with increase", func() {
+			result := testReducer("percent_diff", 20, 40)
+			So(result, ShouldEqual, float64(100))
+		})
+
+		Convey("percent_diff with decrease", func() {
+			result := testReducer("percent_diff", 40, 20)
+			So(result, ShouldEqual, float64(50))
+		})
+
+		Convey("change with one point", func() {
+			result := testReducer("change", 30)
+			So(result, ShouldEqual, float64(0))
+		})
+
+		Convey("change with two points", func() {
+			result := testReducer("change", 30, 50)
+			So(result, ShouldEqual, float64(20))
+		})
+
+		Convey("change with three points", func() {
+			result := testReducer("change", 30, 50, 45)
+			So(result, ShouldEqual, float64(15))
+		})
+
+		Convey("change with only nulls", func() {
+			reducer := newSimpleReducer("change")
+			series := &tsdb.TimeSeries{
+				Name: "test time serie",
+			}
+
+			series.Points = append(series.Points, tsdb.NewTimePoint(null.FloatFromPtr(nil), 1))
+			series.Points = append(series.Points, tsdb.NewTimePoint(null.FloatFromPtr(nil), 2))
+
+			So(reducer.Reduce(series).Valid, ShouldEqual, false)
+		})
+
+		Convey("change with increase", func() {
+			result := testReducer("change", 30, 60)
+			So(result, ShouldEqual, float64(30))
+		})
+
+		Convey("change with decrease", func() {
+			result := testReducer("change", 40, 10)
+			So(result, ShouldEqual, float64(-30))
+		})
+
+		Convey("percent_change with one point", func() {
+			result := testReducer("percent_change", 40)
+			So(result, ShouldEqual, float64(0))
+		})
+
+		Convey("percent_change with two points", func() {
+			result := testReducer("percent_change", 40, 46)
+			So(result, ShouldEqual, float64(15))
+		})
+
+		Convey("percent_change with three points", func() {
+			result := testReducer("percent_change", 40, 35, 52)
+			So(result, ShouldEqual, float64(30))
+		})
+
+		Convey("percent_change with only nulls", func() {
+			reducer := newSimpleReducer("percent_change")
+			series := &tsdb.TimeSeries{
+				Name: "test time serie",
+			}
+
+			series.Points = append(series.Points, tsdb.NewTimePoint(null.FloatFromPtr(nil), 1))
+			series.Points = append(series.Points, tsdb.NewTimePoint(null.FloatFromPtr(nil), 2))
+
+			So(reducer.Reduce(series).Valid, ShouldEqual, false)
+		})
+
+		Convey("percent_change with increase", func() {
+			result := testReducer("percent_change", 40, 54)
+			So(result, ShouldEqual, float64(35))
+		})
+
+		Convey("percent_change with decrease", func() {
+			result := testReducer("percent_change", 40, 28)
+			So(result, ShouldEqual, float64(-30))
+		})
+
 	})
 }
 
